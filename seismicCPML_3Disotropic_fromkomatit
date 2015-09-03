@@ -103,34 +103,34 @@ memory_dsigmayz_dz=zeros(NX,NY,NZ);
 
 % 1D arrays for the damping profiles
 d_x=zeros(NX,1);
-K_x=zeros(NX,1);
+K_x=zeros(NX,1)+1;
 alpha_x=zeros(NX,1);
 a_x=zeros(NX,1);
 b_x=zeros(NX,1);
 d_x_half=zeros(NX,1);
-K_x_half=zeros(NX,1);
+K_x_half=zeros(NX,1)+1;
 alpha_x_half=zeros(NX,1);
 a_x_half=zeros(NX,1);
 b_x_half=zeros(NX,1);
 
 d_y=zeros(NY,1);
-K_y=zeros(NY,1);
+K_y=zeros(NY,1)+1;
 alpha_y=zeros(NY,1);
 a_y=zeros(NY,1);
 b_y=zeros(NY,1);
 d_y_half=zeros(NY,1);
-K_y_half=zeros(NY,1);
+K_y_half=zeros(NY,1)+1;
 alpha_y_half=zeros(NY,1);
 a_y_half=zeros(NY,1);
 b_y_half=zeros(NY,1);
 
 d_z=zeros(NZ,1);
-K_z=zeros(NZ,1);
+K_z=zeros(NZ,1)+1;
 alpha_z=zeros(NZ,1);
 a_z=zeros(NZ,1);
 b_z=zeros(NZ,1);
 d_z_half=zeros(NZ,1);
-K_z_half=zeros(NZ,1);
+K_z_half=zeros(NZ,1)+1;
 alpha_z_half=zeros(NZ,1);
 a_z_half=zeros(NZ,1);
 b_z_half=zeros(NZ,1);
@@ -699,6 +699,12 @@ for k = kmin:kmax
 end
 if (mod(it,100)==0)
     it
-    dlmwrite(num2str(it),vx(ISOURCE,:,:));
+    a=zeros(NX,NZ);
+    for k=1:NZ
+        for i=1:NX
+            a(i,k)=vx(i,floor(JSOURCE),k);
+        end
+    end
+    dlmwrite(num2str(it),a);
 end
 end
