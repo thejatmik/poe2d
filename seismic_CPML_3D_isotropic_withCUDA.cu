@@ -382,9 +382,12 @@ int main()
 	HANDLE_ERROR(cudaMalloc((void**)&DELTAT, sizeof(float)));
 	HANDLE_ERROR(cudaMemcpy(DELTAT, &DELTATT, sizeof(float), cudaMemcpyHostToDevice));
 
-	float f0, t0, factorr;
+	float f0, tt0, factorr;
 	f0 = 7;
-	float *ff0;
+	tt0 = 1.2 / f0;
+	float *ff0, *t0;
+	HANDLE_ERROR(cudaMalloc((void**)&t0, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(t0, &tt0, sizeof(float), cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMalloc((void**)&ff0, sizeof(float)));
 	HANDLE_ERROR(cudaMemcpy(ff0, &f0, sizeof(float), cudaMemcpyHostToDevice));
 	factorr = 1e+7;
@@ -395,16 +398,16 @@ int main()
 	int NPOINTS_PML = 10;
 
 	int ISOURCEE, KSOURCEE, JSOURCEE;
-	ISOURCEE = floor(float(NIMX) / 2);
-	JSOURCEE = floor(float(NIMY) / 2);
-	KSOURCEE = floor(float(NIMZ) / 2);
-	float *ISOURCE, *KSOURCE, *JSOURCE;
-	HANDLE_ERROR(cudaMalloc((void**)&ISOURCE, sizeof(float)));
-	HANDLE_ERROR(cudaMemcpy(ISOURCE, &ISOURCEE, sizeof(float), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMalloc((void**)&JSOURCE, sizeof(float)));
-	HANDLE_ERROR(cudaMemcpy(JSOURCE, &JSOURCEE, sizeof(float), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMalloc((void**)&KSOURCE, sizeof(float)));
-	HANDLE_ERROR(cudaMemcpy(KSOURCE, &KSOURCEE, sizeof(float), cudaMemcpyHostToDevice));
+	ISOURCEE = (NIMX) / 2;
+	JSOURCEE = (NIMY) / 2;
+	KSOURCEE = (NIMZ) / 2;
+	int *ISOURCE, *KSOURCE, *JSOURCE;
+	HANDLE_ERROR(cudaMalloc((void**)&ISOURCE, sizeof(int)));
+	HANDLE_ERROR(cudaMemcpy(ISOURCE, &ISOURCEE, sizeof(int), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMalloc((void**)&JSOURCE, sizeof(int)));
+	HANDLE_ERROR(cudaMemcpy(JSOURCE, &JSOURCEE, sizeof(int), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMalloc((void**)&KSOURCE, sizeof(int)));
+	HANDLE_ERROR(cudaMemcpy(KSOURCE, &KSOURCEE, sizeof(int), cudaMemcpyHostToDevice));
 
 	float ANGLE_FORCEE = 90;
 	float *ANGLE_FORCE;
@@ -1117,13 +1120,13 @@ int main()
 
 	free(tempd_z); free(tempd_z_half); free(tempa_z); free(tempa_z_half); free(tempalpha_z); free(tempalpha_z_half); free(tempb_z); free(tempb_z_half); free(tempK_z); free(tempK_z_half);
 
-	float *DDIMX, DDIMY, DDIMZ; 
+	int *DDIMX, *DDIMY, *DDIMZ; 
 	HANDLE_ERROR(cudaMalloc((void**)&DDIMX, sizeof(int)));
 	HANDLE_ERROR(cudaMalloc((void**)&DDIMY, sizeof(int)));
 	HANDLE_ERROR(cudaMalloc((void**)&DDIMZ, sizeof(int)));
-	HANDLE_ERROR(cudaMemcpy(&DDIMX, &NIMX, sizeof(int), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(&DDIMY, &NIMY, sizeof(int), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(&DDIMZ, &NIMZ, sizeof(int), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(DDIMX, &NIMX, sizeof(int), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(DDIMY, &NIMY, sizeof(int), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(DDIMZ, &NIMZ, sizeof(int), cudaMemcpyHostToDevice));
 	
 	dim3 threads;
 	threads.x = 100;
@@ -1135,8 +1138,8 @@ int main()
 	blocks.y = NIMY / threads.y;
 	blocks.z = NIMZ / threads.z;
 
-	float *iit;
-	HANDLE_ERROR(cudaMalloc((void**)&iit, sizeof(float)));
+	int *iit;
+	HANDLE_ERROR(cudaMalloc((void**)&iit, sizeof(int)));
 
 	for (int it = 1; it <= NSTEP; it++) {
 		kersigmaxyz << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ,
@@ -1189,7 +1192,7 @@ int main()
 			ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ,
 			vz, DELTAT_over_rho);
 
-		HANDLE_ERROR(cudaMemcpy(iit, &it, sizeof(float), cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(iit, &it, sizeof(int), cudaMemcpyHostToDevice));
 		keraddSource << <blocks, threads >> >(iit, ISOURCE, JSOURCE, KSOURCE,
 			ANGLE_FORCE, DEGREES_TO_RADIANS, DELTAT,
 			factor, t0, ff0, DPI,
@@ -1214,7 +1217,7 @@ int main()
 						int jk = (j-1) + (k-1)*NIMY;
 						sxvz[jk] = tempvz[ijk];
 						syvz[ik] = tempvz[ijk];
-						szvz[ik] = tempvz[ijk];
+						szvz[ij] = tempvz[ijk];
 					}
 				}
 			}
