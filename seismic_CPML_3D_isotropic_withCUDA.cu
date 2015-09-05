@@ -340,26 +340,6 @@ __global__ void kerDirichletBoundary(int *DDIMX, int *DDIMY, int *DDIMZ,
 	}
 }
 
-__global__ void saveSnapshot() {
-	int index_x = blockIdx.x * blockDim.x + threadIdx.x;
-	int index_y = blockIdx.y * blockDim.y + threadIdx.y;
-	int index_z = blockIdx.z * blockDim.z + threadIdx.z;
-
-	int blkId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
-	int aaaa = blockDim.x * blockDim.y * blockDim.z;
-	int bbbb = threadIdx.z * (blockDim.x * blockDim.y);
-	int cccc = (threadIdx.y * blockDim.x) + threadIdx.x;
-	int offset = blkId * aaaa + bbbb + cccc;
-
-	if ((index_z >= 1) && (index_z <= DDIMZ[0])) {
-		if ((index_y >= 1) && (index_y <= DDIMY[0])) {
-			if ((index_x >= 1) && (index_z <= DDIMX[0])) {
-
-			}
-		}
-	}
-}
-
 int main()
 {
 	int NIMX, NIMY, NIMZ;
@@ -1216,6 +1196,76 @@ int main()
 			vx, vy, rho);
 
 		kerDirichletBoundary << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ, vx, vy, vz);
+
+		if (fmod(it, 200) == 0){
+			float *tempvz = (float*)malloc(sizeof(float)*DIMX*DIMY*DIMZ);
+			float *sxvz = (float*)malloc(sizeof(float)*NIMY*NIMZ);
+			float *syvz = (float*)malloc(sizeof(float)*NIMX*NIMZ);
+			float *szvz = (float*)malloc(sizeof(float)*NIMX*NIMY);
+			HANDLE_ERROR(cudaMemcpy(tempvz, vz, sizeof(float)*DIMX*DIMY*DIMZ, cudaMemcpyDeviceToHost));
+			
+			//slicing for snapshot
+			for (int k = 1; k <= NIMZ; k++) {
+				for (int j = 1; j <= NIMY; j++) {
+					for (int i = 1; i <= NIMX; i++) {
+						int ijk = i + j*NIMX + k*NIMX*NIMY;
+						int ij = (i-1) + (j-1)*NIMX;
+						int ik = (i-1) + (k-1)*NIMX;
+						int jk = (j-1) + (k-1)*NIMY;
+						sxvz[jk] = tempvz[ijk];
+						syvz[ik] = tempvz[ijk];
+						szvz[ik] = tempvz[ijk];
+					}
+				}
+			}
+			//save to file
+			char nmfile1[50]; char nmfile2[50]; char nmfile3[50];
+			sprintf_s(nmfile1, "sxvz%05i.sxvz", it);
+			sprintf_s(nmfile2, "syvz%05i.syvz", it);
+			sprintf_s(nmfile3, "szvz%05i.szvz", it);
+			errno_t err;
+			FILE *file1, *file2, *file3;
+			err = fopen_s(&file1, nmfile1, "wb");
+			if (err == 0) {
+				printf("Capturing sxvz %05i \n", it);
+				for (int k = 0; k < NIMZ; k++) {
+					for (int j = 0; j < NIMY; j++) {
+						int jk = j + k*NIMY;
+						float f1 = sxvz[jk];
+						fwrite(&f1, sizeof(float), 1, file1);
+					}
+				}
+				fclose(file1);
+			}
+			err = fopen_s(&file2, nmfile2, "wb");
+			if (err == 0) {
+				printf("Capturing syvz %05i \n", it);
+				for (int k = 0; k < NIMZ; k++) {
+					for (int i = 0; i < NIMX; i++) {
+						int ik = i + k*NIMX;
+						float f2 = syvz[ik];
+						fwrite(&f2, sizeof(float), 1, file2);
+					}
+				}
+				fclose(file2);
+			}
+			err = fopen_s(&file3, nmfile3, "wb");
+			if (err == 0) {
+				printf("Capturing szvz %05i \n", it);
+				for (int j = 0; j < NIMY; j++) {
+					for (int i = 0; i < NIMX; i++) {
+						int ij = i + j*NIMX;
+						float f3 = szvz[ij];
+						fwrite(&f3, sizeof(float), 1, file3);
+					}
+				}
+				fclose(file3);
+			}
+			_fcloseall();
+			//save to file END
+			free(tempvz);
+			free(sxvz); free(syvz); free(szvz);
+		}
 	}
 
 	HANDLE_ERROR(cudaFree(sigmaxx)); HANDLE_ERROR(cudaFree(sigmayy)); HANDLE_ERROR(cudaFree(sigmazz));
