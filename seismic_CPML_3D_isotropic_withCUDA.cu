@@ -278,12 +278,86 @@ __global__ void kervz(int *DDIMX, int *DDIMY, int *DDIMZ,
 
 }
 
-__global__ void keraddSource() {
+__global__ void keraddSource(int *iit, int *ISOURCE, int *JSOURCE, int *KSOURCE,
+		float *ANGLE_FORCE, float *DEGREES_TO_RADIANS, float *DELTAT,
+		float *factor, float *t0, float *ff0, float *DPI,
+		float *vx, float *vy, float *rho) {
+	int index_x = blockIdx.x * blockDim.x + threadIdx.x;
+	int index_y = blockIdx.y * blockDim.y + threadIdx.y;
+	int index_z = blockIdx.z * blockDim.z + threadIdx.z;
 
+	int blkId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+	int aaaa = blockDim.x * blockDim.y * blockDim.z;
+	int bbbb = threadIdx.z * (blockDim.x * blockDim.y);
+	int cccc = (threadIdx.y * blockDim.x) + threadIdx.x;
+	int offset = blkId * aaaa + bbbb + cccc;
+
+	float a = DPI[0] * DPI[0] * ff0[0] * ff0[0];
+	float t = float(iit[0] - 1)*DELTAT[0];
+
+	//Gaussian
+	//float source_term = factor * expf(-a*powf((t - t0), 2));
+
+	//first derivative of a Gaussian
+	float source_term = -factor[0] * 2.0*a*(t - t0[0])*expf(-a*powf((t - t0[0]), 2));
+
+	//Ricker source time function(second derivative of a Gaussian)
+	//float source_term = factor*(1.0 - 2.0*a*powf((t - t0), 2))*expf(-a*powf(t - t0, 2));
+
+	float force_x = sinf(ANGLE_FORCE[0] * DEGREES_TO_RADIANS[0])*source_term;
+	float force_y = cosf(ANGLE_FORCE[0] * DEGREES_TO_RADIANS[0])*source_term;
+
+	if (index_z == KSOURCE[0]) {
+		if (index_y == JSOURCE[0]) {
+			if (index_x == ISOURCE[0]) {
+				vx[offset] = vx[offset] + force_x*DELTAT[0] / rho[0];
+				vy[offset] = vy[offset] + force_y*DELTAT[0] / rho[0];
+			}
+		}
+	}
 }
 
-__global__ void kerDirichletBoundary() {
+__global__ void kerDirichletBoundary(int *DDIMX, int *DDIMY, int *DDIMZ,
+	float *vx, float *vy, float *vz) {
+	int index_x = blockIdx.x * blockDim.x + threadIdx.x;
+	int index_y = blockIdx.y * blockDim.y + threadIdx.y;
+	int index_z = blockIdx.z * blockDim.z + threadIdx.z;
 
+	int blkId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+	int aaaa = blockDim.x * blockDim.y * blockDim.z;
+	int bbbb = threadIdx.z * (blockDim.x * blockDim.y);
+	int cccc = (threadIdx.y * blockDim.x) + threadIdx.x;
+	int offset = blkId * aaaa + bbbb + cccc;
+
+	if ((index_z == 1) || (index_z == DDIMZ[0])) {
+		if ((index_y == 1) || (index_y == DDIMY[0])) {
+			if ((index_x == 1) || (index_z == DDIMX[0])) {
+				vy[offset] = 0.0;
+				vx[offset] = 0.0;
+				vz[offset] = 0.0;
+			}
+		}
+	}
+}
+
+__global__ void saveSnapshot() {
+	int index_x = blockIdx.x * blockDim.x + threadIdx.x;
+	int index_y = blockIdx.y * blockDim.y + threadIdx.y;
+	int index_z = blockIdx.z * blockDim.z + threadIdx.z;
+
+	int blkId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+	int aaaa = blockDim.x * blockDim.y * blockDim.z;
+	int bbbb = threadIdx.z * (blockDim.x * blockDim.y);
+	int cccc = (threadIdx.y * blockDim.x) + threadIdx.x;
+	int offset = blkId * aaaa + bbbb + cccc;
+
+	if ((index_z >= 1) && (index_z <= DDIMZ[0])) {
+		if ((index_y >= 1) && (index_y <= DDIMY[0])) {
+			if ((index_x >= 1) && (index_z <= DDIMX[0])) {
+
+			}
+		}
+	}
 }
 
 int main()
@@ -312,32 +386,60 @@ int main()
 	HANDLE_ERROR(cudaMemcpy(ONE_OVER_DELTAY, &ONE_OVER_DELTAYY, sizeof(float), cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(ONE_OVER_DELTAZ, &ONE_OVER_DELTAZZ, sizeof(float), cudaMemcpyHostToDevice));
 
-	float cp, cs, rho, mu, lambda, lambdaplustwomu;
-	cp = 3300.0;
-	cs = cp/1.732;
-	rho = 3000.0;
-	mu = rho*cs*cs;
-	lambda = rho*(cp*cp - 2 * cs*cs);
-	lambdaplustwomu = rho*cp*cp;
+	float tempcp, tempcs, temprho, mu, lambda, lambdaplustwomu;
+	tempcp = 3300.0;
+	tempcs = tempcp/1.732;
+	temprho = 3000.0;
+	float *rho;
+	HANDLE_ERROR(cudaMalloc((void**)&rho, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(rho, &temprho, sizeof(float), cudaMemcpyHostToDevice));
+	mu = temprho*tempcs*tempcs;
+	lambda = temprho*(tempcp*tempcp - 2 * tempcs*tempcs);
+	lambdaplustwomu = temprho*tempcp*tempcp;
 
-	float DELTAT = 1e-5;
+	float DELTATT = 1e-5;
+	float *DELTAT;
+	HANDLE_ERROR(cudaMalloc((void**)&DELTAT, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(DELTAT, &DELTATT, sizeof(float), cudaMemcpyHostToDevice));
 
-	float f0, t0, factor;
+	float f0, t0, factorr;
 	f0 = 7;
-	factor = 1e+7;
+	float *ff0;
+	HANDLE_ERROR(cudaMalloc((void**)&ff0, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(ff0, &f0, sizeof(float), cudaMemcpyHostToDevice));
+	factorr = 1e+7;
+	float *factor;
+	HANDLE_ERROR(cudaMalloc((void**)&factor, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(factor, &factorr, sizeof(float), cudaMemcpyHostToDevice));
 
 	int NPOINTS_PML = 10;
 
-	int ISOURCE, KSOURCE, JSOURCE;
-	ISOURCE = floor(float(NIMX) / 2);
-	JSOURCE = floor(float(NIMY) / 2);
-	KSOURCE = floor(float(NIMZ) / 2);
+	int ISOURCEE, KSOURCEE, JSOURCEE;
+	ISOURCEE = floor(float(NIMX) / 2);
+	JSOURCEE = floor(float(NIMY) / 2);
+	KSOURCEE = floor(float(NIMZ) / 2);
+	float *ISOURCE, *KSOURCE, *JSOURCE;
+	HANDLE_ERROR(cudaMalloc((void**)&ISOURCE, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(ISOURCE, &ISOURCEE, sizeof(float), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMalloc((void**)&JSOURCE, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(JSOURCE, &JSOURCEE, sizeof(float), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMalloc((void**)&KSOURCE, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(KSOURCE, &KSOURCEE, sizeof(float), cudaMemcpyHostToDevice));
 
-	float ANGLE_FORCE = 90;
+	float ANGLE_FORCEE = 90;
+	float *ANGLE_FORCE;
+	HANDLE_ERROR(cudaMalloc((void**)&ANGLE_FORCE, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(ANGLE_FORCE, &ANGLE_FORCEE, sizeof(float), cudaMemcpyHostToDevice));
 	int IT_OUTPUT = 200;
 
 	float PI = 3.141592653589793238462643;
-	float DEGREES_TO_RADIANS = PI / 180;
+	float *DPI;
+	HANDLE_ERROR(cudaMalloc((void**)&DPI, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(DPI, &PI, sizeof(float), cudaMemcpyHostToDevice));
+	float DEGREES_TO_RADIANSS = PI / 180;
+	float *DEGREES_TO_RADIANS;
+	HANDLE_ERROR(cudaMalloc((void**)&DEGREES_TO_RADIANS, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(DEGREES_TO_RADIANS, &DEGREES_TO_RADIANSS, sizeof(float), cudaMemcpyHostToDevice));
 
 	float NPOWER = 2;
 	float K_MAX_PML = 1;
@@ -765,10 +867,10 @@ int main()
 	float total_energy_kinetic, total_energy_potential;
 	float *total_energy = (float*)malloc(sizeof(float)*NSTEP);
 
-	float tDELTAT_lambda = DELTAT*lambda;
-	float tDELTAT_mu = DELTAT*mu;
-	float tDELTAT_lambdaplus2mu = DELTAT*lambdaplustwomu;
-	float tDELTAT_over_rho = DELTAT / rho;
+	float tDELTAT_lambda = DELTATT*lambda;
+	float tDELTAT_mu = DELTATT*mu;
+	float tDELTAT_lambdaplus2mu = DELTATT*lambdaplustwomu;
+	float tDELTAT_over_rho = DELTATT / temprho;
 	float Courant_number;
 
 	float *DELTAT_lambda, *DELTAT_mu, *DELTAT_lambdaplus2mu, *DELTAT_over_rho;
@@ -787,9 +889,9 @@ int main()
 	thickness_PML_z = NPOINTS_PML * DELTAZ;
 	Rcoef = 0.001;
 
-	d0_x = -(NPOWER + 1) * cp * logf(Rcoef) / (2.0 * thickness_PML_x);
-	d0_y = -(NPOWER + 1) * cp * logf(Rcoef) / (2.0 * thickness_PML_y);
-	d0_z = -(NPOWER + 1) * cp * logf(Rcoef) / (2.0 * thickness_PML_z);
+	d0_x = -(NPOWER + 1) * tempcp * logf(Rcoef) / (2.0 * thickness_PML_x);
+	d0_y = -(NPOWER + 1) * tempcp * logf(Rcoef) / (2.0 * thickness_PML_y);
+	d0_z = -(NPOWER + 1) * tempcp * logf(Rcoef) / (2.0 * thickness_PML_z);
 
 	//------------------PML X
 	float *tempd_x = (float*)malloc(sizeof(float)*DIMX);
@@ -853,8 +955,8 @@ int main()
 		}
 		if (tempalpha_x[i] < 0.0) { tempalpha_x[i] = 0.0; }
 		if (tempalpha_x_half[i] < 0.0) { tempalpha_x_half[i] = 0.0; }
-		tempb_x[i] = expf(-(tempd_x[i] / tempK_x[i] + tempalpha_x[i])*DELTAT);
-		tempb_x_half[i] = expf(-(tempd_x_half[i] / tempK_x_half[i] + tempalpha_x_half[i])*DELTAT);
+		tempb_x[i] = expf(-(tempd_x[i] / tempK_x[i] + tempalpha_x[i])*DELTATT);
+		tempb_x_half[i] = expf(-(tempd_x_half[i] / tempK_x_half[i] + tempalpha_x_half[i])*DELTATT);
 
 		if (fabs(tempd_x[i]) > 1e-6) { tempa_x[i] = tempd_x[i] * (tempb_x[i] - 1.0) / (tempK_x[i] * (tempd_x[i] + tempK_x[i] * tempalpha_x[i])); }
 		if (fabs(tempd_x_half[i]) > 1e-6) { tempa_x_half[i] = tempd_x_half[i] * (tempb_x_half[i] - 1.0) / (tempK_x_half[i] * (tempd_x_half[i] + tempK_x_half[i] * tempalpha_x_half[i])); }
@@ -934,8 +1036,8 @@ int main()
 			tempalpha_y_half[i] = ALPHA_MAX_PML*(1.0 - abscissa_normalized) + 0.1*ALPHA_MAX_PML;
 		}
 
-		tempb_y[i] = expf(-(tempd_y[i] / tempK_y[i] + tempalpha_y[i])*DELTAT);
-		tempb_y_half[i] = expf(-(tempd_y_half[i] / tempK_y_half[i] + tempalpha_y_half[i])*DELTAT);
+		tempb_y[i] = expf(-(tempd_y[i] / tempK_y[i] + tempalpha_y[i])*DELTATT);
+		tempb_y_half[i] = expf(-(tempd_y_half[i] / tempK_y_half[i] + tempalpha_y_half[i])*DELTATT);
 
 		if (fabs(tempd_y[i]) > 1e-6) { tempa_y[i] = tempd_y[i] * (tempb_y[i] - 1.0) / (tempK_y[i] * (tempd_y[i] + tempK_y[i] * tempalpha_y[i])); }
 		if (fabs(tempd_y_half[i]) > 1e-6) { tempa_y_half[i] = tempd_y_half[i] * (tempb_y_half[i] - 1.0) / (tempK_y_half[i] * (tempd_y_half[i] + tempK_y_half[i] * tempalpha_y_half[i])); }
@@ -1015,8 +1117,8 @@ int main()
 			tempalpha_z_half[i] = ALPHA_MAX_PML*(1.0 - abscissa_normalized) + 0.1*ALPHA_MAX_PML;
 		}
 
-		tempb_z[i] = expf(-(tempd_z[i] / tempK_z[i] + tempalpha_z[i])*DELTAT);
-		tempb_z_half[i] = expf(-(tempd_z_half[i] / tempK_z_half[i] + tempalpha_z_half[i])*DELTAT);
+		tempb_z[i] = expf(-(tempd_z[i] / tempK_z[i] + tempalpha_z[i])*DELTATT);
+		tempb_z_half[i] = expf(-(tempd_z_half[i] / tempK_z_half[i] + tempalpha_z_half[i])*DELTATT);
 
 		if (fabs(tempd_z[i]) > 1e-6) { tempa_z[i] = tempd_z[i] * (tempb_z[i] - 1.0) / (tempK_z[i] * (tempd_z[i] + tempK_z[i] * tempalpha_z[i])); }
 		if (fabs(tempd_z_half[i]) > 1e-6) { tempa_z_half[i] = tempd_z_half[i] * (tempb_z_half[i] - 1.0) / (tempK_z_half[i] * (tempd_z_half[i] + tempK_z_half[i] * tempalpha_z_half[i])); }
@@ -1052,6 +1154,9 @@ int main()
 	blocks.x = NIMX / threads.x;
 	blocks.y = NIMY / threads.y;
 	blocks.z = NIMZ / threads.z;
+
+	float *iit;
+	HANDLE_ERROR(cudaMalloc((void**)&iit, sizeof(float)));
 
 	for (int it = 1; it <= NSTEP; it++) {
 		kersigmaxyz << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ,
@@ -1103,6 +1208,14 @@ int main()
 			K_x_half, K_y, K_z_half,
 			ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ,
 			vz, DELTAT_over_rho);
+
+		HANDLE_ERROR(cudaMemcpy(iit, &it, sizeof(float), cudaMemcpyHostToDevice));
+		keraddSource << <blocks, threads >> >(iit, ISOURCE, JSOURCE, KSOURCE,
+			ANGLE_FORCE, DEGREES_TO_RADIANS, DELTAT,
+			factor, t0, ff0, DPI,
+			vx, vy, rho);
+
+		kerDirichletBoundary << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ, vx, vy, vz);
 	}
 
 	HANDLE_ERROR(cudaFree(sigmaxx)); HANDLE_ERROR(cudaFree(sigmayy)); HANDLE_ERROR(cudaFree(sigmazz));
