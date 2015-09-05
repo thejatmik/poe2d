@@ -8,6 +8,17 @@
 #include <stdio.h>
 #include <fstream>
 
+static void HandleError(cudaError_t err,
+	const char *file,
+	int line) {
+	if (err != cudaSuccess) {
+		printf("%s in %s at line %d\n", cudaGetErrorString(err),
+			file, line);
+		exit(EXIT_FAILURE);
+	}
+}
+#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
+
 __global__ void kersigmaxyz(int *DDIMX, int *DDIMY, int *DDIMZ,
 							float *memory_dvx_dx, float *memory_dvy_dy, float *memory_dvz_dz,
 							float *a_x_half, float *a_y, float *a_z,
@@ -267,6 +278,14 @@ __global__ void kervz(int *DDIMX, int *DDIMY, int *DDIMZ,
 
 }
 
+__global__ void keraddSource() {
+
+}
+
+__global__ void kerDirichletBoundary() {
+
+}
+
 int main()
 {
 	int NIMX, NIMY, NIMZ;
@@ -280,10 +299,18 @@ int main()
 	DIMX = NIMX + 1; DIMY = NIMY + 1; DIMZ = NIMZ + 1;
 
 	int DELTAX, DELTAY, DELTAZ;
-	DELTAX = 10; DELTAY = DELTAX; DELTAZ = DELTAX;
+	DELTAX = 1.5; DELTAY = DELTAX; DELTAZ = DELTAX;
 	float ONE_OVER_DELTAXX, ONE_OVER_DELTAYY, ONE_OVER_DELTAZZ;
 	ONE_OVER_DELTAXX = 1 / float(DELTAX);
 	ONE_OVER_DELTAZZ = ONE_OVER_DELTAXX; ONE_OVER_DELTAYY = ONE_OVER_DELTAXX;
+
+	float *ONE_OVER_DELTAX, *ONE_OVER_DELTAY, *ONE_OVER_DELTAZ;
+	HANDLE_ERROR(cudaMalloc((void**)&ONE_OVER_DELTAX, sizeof(float)));
+	HANDLE_ERROR(cudaMalloc((void**)&ONE_OVER_DELTAY, sizeof(float)));
+	HANDLE_ERROR(cudaMalloc((void**)&ONE_OVER_DELTAZ, sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(ONE_OVER_DELTAX, &ONE_OVER_DELTAXX, sizeof(float), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(ONE_OVER_DELTAY, &ONE_OVER_DELTAYY, sizeof(float), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(ONE_OVER_DELTAZ, &ONE_OVER_DELTAZZ, sizeof(float), cudaMemcpyHostToDevice));
 
 	float cp, cs, rho, mu, lambda, lambdaplustwomu;
 	cp = 3300.0;
@@ -293,7 +320,7 @@ int main()
 	lambda = rho*(cp*cp - 2 * cs*cs);
 	lambdaplustwomu = rho*cp*cp;
 
-	float DELTAT = 1e-3;
+	float DELTAT = 1e-5;
 
 	float f0, t0, factor;
 	f0 = 7;
@@ -596,19 +623,19 @@ int main()
 	HANDLE_ERROR(cudaMemcpy(memory_dsigmayy_dy, tempmemory_dsigmayy_dy, sizeof(float)*DIMX*DIMY*DIMZ, cudaMemcpyHostToDevice));
 	free(tempmemory_dsigmayy_dy);
 
-	float *memory_dsigmazz_dz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
+	float *tempmemory_dsigmazz_dz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
 	for (int k = 1; k < DIMZ; k++) {
 		for (int j = 1; j < DIMY; j++) {
 			for (int i = 1; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
-				tempmemory_dsigmayy_dy[ijk] = 0;
+				tempmemory_dsigmazz_dz[ijk] = 0;
 			}
 		}
 	}
-	float *memory_dsigmayy_dy;
-	HANDLE_ERROR(cudaMalloc((void**)&memory_dsigmayy_dy, DIMX*DIMY*DIMZ*sizeof(float)));
-	HANDLE_ERROR(cudaMemcpy(memory_dsigmayy_dy, tempmemory_dsigmayy_dy, sizeof(float)*DIMX*DIMY*DIMZ, cudaMemcpyHostToDevice));
-	free(tempmemory_dsigmayy_dy);
+	float *memory_dsigmazz_dz;
+	HANDLE_ERROR(cudaMalloc((void**)&memory_dsigmazz_dz, DIMX*DIMY*DIMZ*sizeof(float)));
+	HANDLE_ERROR(cudaMemcpy(memory_dsigmazz_dz, tempmemory_dsigmazz_dz, sizeof(float)*DIMX*DIMY*DIMZ, cudaMemcpyHostToDevice));
+	free(tempmemory_dsigmazz_dz);
 
 	float *tempmemory_dsigmaxy_dx = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
 	for (int k = 1; k < DIMZ; k++) {
@@ -693,12 +720,7 @@ int main()
 	HANDLE_ERROR(cudaMalloc((void**)&memory_dsigmayz_dz, DIMX*DIMY*DIMZ*sizeof(float)));
 	HANDLE_ERROR(cudaMemcpy(memory_dsigmayz_dz, tempmemory_dsigmayz_dz, sizeof(float)*DIMX*DIMY*DIMZ, cudaMemcpyHostToDevice));
 	free(tempmemory_dsigmayz_dz);
-
-
-	//float *d_x = (float*)malloc(sizeof(float)*(DIMX));
-	//HANDLE_ERROR(cudaMemcpy(xxa_x, a_x, sizeof(float)*(DIMX), cudaMemcpyHostToDevice));
-	//HANDLE_ERROR( cudaMalloc( (void**)&memory_dsigmazz_dz, DIMX * DIMZ * sizeof(float)));
-
+	
 	float *d_x, *K_x, *alpha_x, *a_x, *b_x, *d_x_half, *K_x_half, *alpha_x_half, *a_x_half, *b_x_half;
 	HANDLE_ERROR(cudaMalloc((void**)&d_x, DIMX*sizeof(float)));
 	HANDLE_ERROR(cudaMalloc((void**)&K_x, DIMX*sizeof(float)));
@@ -743,11 +765,22 @@ int main()
 	float total_energy_kinetic, total_energy_potential;
 	float *total_energy = (float*)malloc(sizeof(float)*NSTEP);
 
-	float DELTAT_lambda = DELTAT*lambda;
-	float DELTAT_mu = DELTAT*mu;
-	float DELTAT_lambdaplus2mu = DELTAT*lambdaplustwomu;
-	float DELTAT_over_rho = DELTAT / rho;
+	float tDELTAT_lambda = DELTAT*lambda;
+	float tDELTAT_mu = DELTAT*mu;
+	float tDELTAT_lambdaplus2mu = DELTAT*lambdaplustwomu;
+	float tDELTAT_over_rho = DELTAT / rho;
 	float Courant_number;
+
+	float *DELTAT_lambda, *DELTAT_mu, *DELTAT_lambdaplus2mu, *DELTAT_over_rho;
+	HANDLE_ERROR(cudaMalloc((void**)&DELTAT_lambda, sizeof(float)));
+	HANDLE_ERROR(cudaMalloc((void**)&DELTAT_mu, sizeof(float)));
+	HANDLE_ERROR(cudaMalloc((void**)&DELTAT_lambdaplus2mu, sizeof(float)));
+	HANDLE_ERROR(cudaMalloc((void**)&DELTAT_over_rho, sizeof(float)));
+
+	HANDLE_ERROR(cudaMemcpy(DELTAT_lambda, &tDELTAT_lambda, sizeof(float), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(DELTAT_mu, &tDELTAT_mu, sizeof(float), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(DELTAT_lambdaplus2mu, &tDELTAT_lambdaplus2mu, sizeof(float), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(DELTAT_over_rho, &tDELTAT_over_rho, sizeof(float), cudaMemcpyHostToDevice));
 
 	thickness_PML_x = NPOINTS_PML * DELTAX;
 	thickness_PML_y = NPOINTS_PML * DELTAY;
@@ -1009,5 +1042,76 @@ int main()
 	HANDLE_ERROR(cudaMemcpy(&DDIMX, &NIMX, sizeof(int), cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(&DDIMY, &NIMY, sizeof(int), cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(&DDIMZ, &NIMZ, sizeof(int), cudaMemcpyHostToDevice));
+	
+	dim3 threads;
+	threads.x = 100;
+	threads.y = 100;
+	threads.z = 100;
+
+	dim3 blocks;
+	blocks.x = NIMX / threads.x;
+	blocks.y = NIMY / threads.y;
+	blocks.z = NIMZ / threads.z;
+
+	for (int it = 1; it <= NSTEP; it++) {
+		kersigmaxyz << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ,
+			memory_dvx_dx, memory_dvy_dy, memory_dvz_dz,
+			a_x_half, a_y, a_z,
+			b_x_half, b_y, b_z,
+			K_x_half, K_y, K_z,
+			DELTAT_lambdaplus2mu, DELTAT_lambda,
+			sigmaxx, sigmayy, sigmazz,
+			ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ,
+			vx, vy, vz);
+
+		kersigmaxy << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ,
+			memory_dvy_dx, memory_dvx_dy,
+			a_x, a_y_half,
+			b_x, b_y_half,
+			K_x, K_y_half,
+			ONE_OVER_DELTAX, ONE_OVER_DELTAY,
+			vx, vy,
+			DELTAT_mu, sigmaxy);
+
+		kersigmaxzyz << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ,
+			memory_dvz_dx, memory_dvx_dz, memory_dvz_dy, memory_dvy_dz,
+			a_x, a_z, a_y_half, a_z_half,
+			b_x, b_y_half, b_z_half,
+			K_x, K_y_half, K_z_half,
+			ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ,
+			vx, vy, vz,
+			DELTAT_mu, sigmaxz, sigmayz);
+
+		kervxvy << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ,
+			sigmaxx, sigmaxy, sigmaxz, sigmayy, sigmayz,
+			memory_dsigmaxx_dx, memory_dsigmaxy_dy, memory_dsigmaxz_dz,
+			memory_dsigmaxy_dx, memory_dsigmayy_dy, memory_dsigmayz_dz,
+			a_x, a_y, a_z,
+			a_x_half, a_y_half,
+			b_x, b_y, b_z,
+			b_x_half, b_y_half,
+			K_x, K_y, K_z,
+			K_x_half, K_y_half,
+			ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ,
+			DELTAT_over_rho, vx, vy);
+
+		kervz << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ,
+			sigmaxz, sigmayz, sigmazz,
+			memory_dsigmaxz_dx, memory_dsigmayz_dy, memory_dsigmazz_dz,
+			b_x_half, b_y, b_z_half,
+			a_x_half, a_y, a_z_half,
+			K_x_half, K_y, K_z_half,
+			ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ,
+			vz, DELTAT_over_rho);
+	}
+
+	HANDLE_ERROR(cudaFree(sigmaxx)); HANDLE_ERROR(cudaFree(sigmayy)); HANDLE_ERROR(cudaFree(sigmazz));
+	HANDLE_ERROR(cudaFree(sigmaxy)); HANDLE_ERROR(cudaFree(sigmaxz)); HANDLE_ERROR(cudaFree(sigmaxz)); 
+	HANDLE_ERROR(cudaFree(memory_dsigmaxx_dx)); HANDLE_ERROR(cudaFree(memory_dsigmaxy_dx)); HANDLE_ERROR(cudaFree(memory_dsigmaxy_dy));
+	HANDLE_ERROR(cudaFree(memory_dsigmaxz_dx)); HANDLE_ERROR(cudaFree(memory_dsigmaxz_dz)); HANDLE_ERROR(cudaFree(memory_dsigmayy_dy));
+	HANDLE_ERROR(cudaFree(memory_dsigmayz_dy)); HANDLE_ERROR(cudaFree(memory_dsigmayz_dz)); HANDLE_ERROR(cudaFree(memory_dsigmazz_dz));
+	HANDLE_ERROR(cudaFree(memory_dvx_dx)); HANDLE_ERROR(cudaFree(memory_dvx_dy)); HANDLE_ERROR(cudaFree(memory_dvx_dz));
+	HANDLE_ERROR(cudaFree(memory_dvy_dx)); HANDLE_ERROR(cudaFree(memory_dvy_dy)); HANDLE_ERROR(cudaFree(memory_dvy_dz));
+	HANDLE_ERROR(cudaFree(memory_dvz_dx)); HANDLE_ERROR(cudaFree(memory_dvz_dy)); HANDLE_ERROR(cudaFree(memory_dvz_dz));
 	return 0;
 }
