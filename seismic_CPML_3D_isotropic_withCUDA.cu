@@ -1122,22 +1122,22 @@ int main()
 
 			//slicing for snapshot
 			for (int k = 1; k <= NIMZ; k++) {
-				for (int j = 1; j <NIMY; j++) {
+				for (int j = 1; j <=NIMY; j++) {
 					int jk = (j-1) + (k-1)*NIMY;
-					int ijk = ISOURCEE + JSOURCEE*NIMX + KSOURCEE*NIMX*NIMY;
+					int ijk = ISOURCEE + j*NIMX + k*NIMX*NIMY;
 					sxvz[jk] = tempvz[ijk];
 				}
 
 				for (int i = 1; i <= NIMX - 1; i++) {
 					int ik = (i-1) + (k-1)*NIMX;
-					int ijk = ISOURCEE + JSOURCEE*NIMX + KSOURCEE*NIMX*NIMY;
+					int ijk = i + JSOURCEE*NIMX + k*NIMX*NIMY;
 					syvz[ik] = tempvz[ijk];
 				}
 			}
 			for (int j = 1; j <= NIMY; j++) {
-				for (int i = 1; i < NIMX; i++) {
+				for (int i = 1; i <= NIMX; i++) {
 					int ij = (i-1) + (j-1)*NIMX;
-					int ijk = ISOURCEE + JSOURCEE*NIMX + KSOURCEE * NIMX*NIMY;
+					int ijk = i + j*NIMX + KSOURCEE * NIMX*NIMY;
 					szvz[ij] = tempvz[ijk];
 				}
 			}
