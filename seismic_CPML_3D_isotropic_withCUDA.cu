@@ -385,9 +385,9 @@ int main()
 	float ALPHA_MAX_PML = 2 * PI*(f0 / 2);
 
 	float *tempvx = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempvx[ijk] = 0;
 			}
@@ -399,9 +399,9 @@ int main()
 	free(tempvx);
 
 	float *tempvy = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempvy[ijk] = 0;
 			}
@@ -413,9 +413,9 @@ int main()
 	free(tempvy);
 
 	float *tempvz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempvz[ijk] = 0;
 			}
@@ -427,9 +427,9 @@ int main()
 	free(tempvz);
 
 	float *tempsigmaxx = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempsigmaxx[ijk] = 0;
 			}
@@ -441,9 +441,9 @@ int main()
 	free(tempsigmaxx);
 
 	float *tempsigmaxy = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempsigmaxy[ijk] = 0;
 			}
@@ -455,9 +455,9 @@ int main()
 	free(tempsigmaxy);
 
 	float *tempsigmayy = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempsigmayy[ijk] = 0;
 			}
@@ -469,9 +469,9 @@ int main()
 	free(tempsigmayy);
 
 	float *tempsigmazz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempsigmazz[ijk] = 0;
 			}
@@ -483,9 +483,9 @@ int main()
 	free(tempsigmazz);
 
 	float *tempsigmaxz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempsigmaxz[ijk] = 0;
 			}
@@ -497,9 +497,9 @@ int main()
 	free(tempsigmaxz);
 
 	float *tempsigmayz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempsigmayz[ijk] = 0;
 			}
@@ -511,9 +511,9 @@ int main()
 	free(tempsigmayz);
 
 	float *tempmemory_dvx_dx = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dvx_dx[ijk] = 0;
 			}
@@ -525,9 +525,9 @@ int main()
 	free(tempmemory_dvx_dx);
 
 	float *tempmemory_dvx_dy = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dvx_dy[ijk] = 0;
 			}
@@ -539,9 +539,9 @@ int main()
 	free(tempmemory_dvx_dy);
 
 	float *tempmemory_dvx_dz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dvx_dz[ijk] = 0;
 			}
@@ -553,9 +553,9 @@ int main()
 	free(tempmemory_dvx_dz);
 
 	float *tempmemory_dvy_dx = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dvy_dx[ijk] = 0;
 			}
@@ -567,9 +567,9 @@ int main()
 	free(tempmemory_dvy_dx);
 
 	float *tempmemory_dvy_dy = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dvy_dy[ijk] = 0;
 			}
@@ -581,9 +581,9 @@ int main()
 	free(tempmemory_dvy_dy);
 
 	float *tempmemory_dvy_dz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dvy_dz[ijk] = 0;
 			}
@@ -595,9 +595,9 @@ int main()
 	free(tempmemory_dvy_dz);
 
 	float *tempmemory_dvz_dx = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dvz_dx[ijk] = 0;
 			}
@@ -609,9 +609,9 @@ int main()
 	free(tempmemory_dvz_dx);
 
 	float *tempmemory_dvz_dy = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dvz_dy[ijk] = 0;
 			}
@@ -623,9 +623,9 @@ int main()
 	free(tempmemory_dvz_dy);
 
 	float *tempmemory_dvz_dz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dvz_dz[ijk] = 0;
 			}
@@ -637,9 +637,9 @@ int main()
 	free(tempmemory_dvz_dz);
 
 	float *tempmemory_dsigmaxx_dx = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dsigmaxx_dx[ijk] = 0;
 			}
@@ -651,9 +651,9 @@ int main()
 	free(tempmemory_dsigmaxx_dx);
 
 	float *tempmemory_dsigmayy_dy = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dsigmayy_dy[ijk] = 0;
 			}
@@ -665,9 +665,9 @@ int main()
 	free(tempmemory_dsigmayy_dy);
 
 	float *tempmemory_dsigmazz_dz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dsigmazz_dz[ijk] = 0;
 			}
@@ -679,9 +679,9 @@ int main()
 	free(tempmemory_dsigmazz_dz);
 
 	float *tempmemory_dsigmaxy_dx = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dsigmaxy_dx[ijk] = 0;
 			}
@@ -693,9 +693,9 @@ int main()
 	free(tempmemory_dsigmaxy_dx);
 
 	float *tempmemory_dsigmaxy_dy = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dsigmaxy_dy[ijk] = 0;
 			}
@@ -707,9 +707,9 @@ int main()
 	free(tempmemory_dsigmaxy_dy);
 
 	float *tempmemory_dsigmaxz_dx = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dsigmaxz_dx[ijk] = 0;
 			}
@@ -721,9 +721,9 @@ int main()
 	free(tempmemory_dsigmaxz_dx);
 
 	float *tempmemory_dsigmaxz_dz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dsigmaxz_dz[ijk] = 0;
 			}
@@ -735,9 +735,9 @@ int main()
 	free(tempmemory_dsigmaxz_dz);
 
 	float *tempmemory_dsigmayz_dy = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dsigmayz_dy[ijk] = 0;
 			}
@@ -749,9 +749,9 @@ int main()
 	free(tempmemory_dsigmayz_dy);
 
 	float *tempmemory_dsigmayz_dz = (float*)malloc(sizeof(float)*(DIMX*DIMY*DIMZ));
-	for (int k = 1; k < DIMZ; k++) {
-		for (int j = 1; j < DIMY; j++) {
-			for (int i = 1; i < DIMX; i++) {
+	for (int k = 0; k < DIMZ; k++) {
+		for (int j = 0; j < DIMY; j++) {
+			for (int i = 0; i < DIMX; i++) {
 				int ijk = i + j*DIMX + k*DIMX*DIMY;
 				tempmemory_dsigmayz_dz[ijk] = 0;
 			}
@@ -1192,7 +1192,7 @@ int main()
 	}
 
 	HANDLE_ERROR(cudaFree(sigmaxx)); HANDLE_ERROR(cudaFree(sigmayy)); HANDLE_ERROR(cudaFree(sigmazz));
-	HANDLE_ERROR(cudaFree(sigmaxy)); HANDLE_ERROR(cudaFree(sigmaxz)); HANDLE_ERROR(cudaFree(sigmaxz));
+	HANDLE_ERROR(cudaFree(sigmaxy)); HANDLE_ERROR(cudaFree(sigmaxz)); HANDLE_ERROR(cudaFree(sigmayz));
 	HANDLE_ERROR(cudaFree(memory_dsigmaxx_dx)); HANDLE_ERROR(cudaFree(memory_dsigmaxy_dx)); HANDLE_ERROR(cudaFree(memory_dsigmaxy_dy));
 	HANDLE_ERROR(cudaFree(memory_dsigmaxz_dx)); HANDLE_ERROR(cudaFree(memory_dsigmaxz_dz)); HANDLE_ERROR(cudaFree(memory_dsigmayy_dy));
 	HANDLE_ERROR(cudaFree(memory_dsigmayz_dy)); HANDLE_ERROR(cudaFree(memory_dsigmayz_dz)); HANDLE_ERROR(cudaFree(memory_dsigmazz_dz));
