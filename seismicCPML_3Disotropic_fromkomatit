@@ -2,9 +2,9 @@ clear
 clc
 
 % total number of grid points in each direction of the grid
-NX = 101;
-NY = 101;
-NZ = 101; % even number in order to cut along Z axis
+NX = 201;
+NY = 201;
+NZ = 201; % even number in order to cut along Z axis
 
 % number of processes used in the MPI run
 % and local number of points (for simplicity we cut the mesh along Z only)
@@ -424,6 +424,12 @@ for irec=1:NREC
   end
 end
 
+gx=10; gy=10; %num of gather x, y, z
+gatx=floor(linspace(1,NX,gx));
+gaty=floor(linspace(1,NY,gy));
+
+gathersvx=zeros(gx,gy);
+gathersvz=zeros(gx,gy);
 
 % check the Courant stability condition for the explicit time scheme
 % R. Courant et K. O. Friedrichs et H. Lewy (1928)
@@ -440,6 +446,7 @@ kminus1end = NZ - 1;
 %---
 
 for it = 1:NSTEP
+sutaru=cputime;
 %----------------------
 % compute stress sigma
 %----------------------
@@ -614,7 +621,7 @@ end
   vx(i,j,k) = vx(i,j,k) + force_x * DELTAT / rho;
   vy(i,j,k) = vy(i,j,k) + force_y * DELTAT / rho;
 
-
+%{
 % implement Dirichlet boundary conditions on the six edges of the grid
 % xmin
   vx(1,:,:) = ZERO;
@@ -646,7 +653,7 @@ end
   vx(:,:,NZ) = ZERO;
   vy(:,:,NZ) = ZERO;
   vz(:,:,NZ) = ZERO;
-
+%}
 % store seismograms
   for irec = 1:NREC
       sisvx(it,irec) = vx(ix_rec(irec),iy_rec(irec),NZ);
@@ -697,14 +704,58 @@ for k = kmin:kmax
     end
   end
 end
+
+
+for i=1:gx
+    for j=1:gy
+        gathersvx(i,j)=vx(gatx(i),gaty(j),15);
+        gathersvz(i,j)=vz(gatx(i),gaty(j),15);
+    end
+end
+
+fid=fopen('gatvx.txt','a');
+fprintf(fid,'%6.2f ',gathersvx);
+fprintf(fid,'\n');
+fclose(fid);
+
+fid=fopen('gatvz.txt','a');
+fprintf(fid,'%6.2f ',gathersvz);
+fprintf(fid,'\n');
+fclose(fid);
+it
+memory
 if (mod(it,100)==0)
-    it
-    a=zeros(NX,NZ);
+    %{
+    a=zeros(NX,NZ); %slice y
+    b=zeros(NX,NY); %slice z
+    c=zeros(NY,NZ); %slice x
+    
     for k=1:NZ
         for i=1:NX
-            a(i,k)=vx(i,floor(JSOURCE),k);
+            a(i,k)=vz(i,floor(JSOURCE),k);
         end
     end
-    dlmwrite(num2str(it),a);
+    
+    for k=1:NY
+        for i=1:NX
+            b(i,k)=vz(i,floor(KSOURCE),k);
+        end
+    end
+    
+    for k=1:NZ
+        for i=1:NY
+            c(i,k)=vz(i,floor(ISOURCE),k);
+        end
+    end
+    %}
+    a='vx'; b='vy'; c='vz'; e='time';
+    d=num2str(it);
+    dlmwrite(strcat(a,d),vx);
+    dlmwrite(strcat(b,d),vy);
+    dlmwrite(strcat(c,d),vz);
+    
+    
+    endu=cputime;
+    dlmwrite(strcat(e,d),endu-sutaru);
 end
 end
