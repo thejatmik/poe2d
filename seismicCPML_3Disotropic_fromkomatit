@@ -445,8 +445,8 @@ kminus1end = NZ - 1;
 %---  beginning of time loop
 %---
 
-for it = 1:NSTEP
 sutaru=cputime;
+for it = 1:NSTEP
 %----------------------
 % compute stress sigma
 %----------------------
