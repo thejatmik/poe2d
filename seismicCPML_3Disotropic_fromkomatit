@@ -2,9 +2,9 @@ clear
 clc
 
 % total number of grid points in each direction of the grid
-NX = 201;
-NY = 201;
-NZ = 201; % even number in order to cut along Z axis
+NX = 251;
+NY = 251;
+NZ = 251; % even number in order to cut along Z axis
 
 % number of processes used in the MPI run
 % and local number of points (for simplicity we cut the mesh along Z only)
@@ -424,7 +424,7 @@ for irec=1:NREC
   end
 end
 
-gx=10; gy=10; %num of gather x, y, z
+gx=100; gy=5; %num of gather x, y, z
 gatx=floor(linspace(1,NX,gx));
 gaty=floor(linspace(1,NY,gy));
 
@@ -446,6 +446,7 @@ kminus1end = NZ - 1;
 %---
 
 sutaru=cputime;
+
 for it = 1:NSTEP
 %----------------------
 % compute stress sigma
@@ -713,12 +714,12 @@ for i=1:gx
     end
 end
 
-fid=fopen('gatvx.txt','a');
+fid=fopen('gatvx.txt','at');
 fprintf(fid,'%6.2f ',gathersvx);
 fprintf(fid,'\n');
 fclose(fid);
 
-fid=fopen('gatvz.txt','a');
+fid=fopen('gatvz.txt','at');
 fprintf(fid,'%6.2f ',gathersvz);
 fprintf(fid,'\n');
 fclose(fid);
