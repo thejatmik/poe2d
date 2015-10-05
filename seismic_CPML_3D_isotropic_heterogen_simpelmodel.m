@@ -2,9 +2,9 @@ clear
 clc
 
 % total number of grid points in each direction of the grid
-NX = 251;
-NY = 251;
-NZ = 251; % even number in order to cut along Z axis
+NX = 201;
+NY = 201;
+NZ = 101; % even number in order to cut along Z axis
 
 % number of processes used in the MPI run
 % and local number of points (for simplicity we cut the mesh along Z only)
@@ -26,7 +26,7 @@ rhos=zeros(NX,NY,NZ) + model1(3);
 for k=1:NZ
     for j=1:NY
         for i=1:NX
-            if j>=50
+            if j>=0
                 if k>=50
                     vp(i,j,k)=model2(1);
                     vs(i,j,k)=model2(2);
@@ -38,7 +38,7 @@ for k=1:NZ
 end
 
 % total number of time steps
-NSTEP = 300;
+NSTEP = 350;
 
 % time step in seconds
 DELTAT = 1.6d-3;
@@ -54,7 +54,7 @@ NPOINTS_PML = 10;
 % source
 ISOURCE = NX/2;
 JSOURCE = NY/2;
-KSOURCE = NZ/2;
+KSOURCE = 11;
 xsource = (ISOURCE - 1) * DELTAX;
 ysource = (JSOURCE - 1) * DELTAY;
 zsource = (KSOURCE - 1) * DELTAZ;
@@ -431,15 +431,15 @@ for irec=1:NREC
 end
 
 gx=100; gy=5; %num of gather x, y, z
-gatx=floor(linspace(1,NX,gx));
-gaty=floor(linspace(1,NY,gy));
+gatx=floor(linspace(1+NPOINTS_PML,NX-(NPOINTS_PML+1),gx));
+gaty=floor(linspace(1+NPOINTS_PML,NY-(NPOINTS_PML+1),gy));
 
 gathersvx=zeros(gx,gy);
 gathersvz=zeros(gx,gy);
 
 % check the Courant stability condition for the explicit time scheme
 % R. Courant et K. O. Friedrichs et H. Lewy (1928)
-  Courant_number = cp * DELTAT * sqrt(1.d0/DELTAX^2 + 1.d0/DELTAY^2 + 1.d0/DELTAZ^2);
+  Courant_number = vp(1,1,1) * DELTAT * sqrt(1.d0/DELTAX^2 + 1.d0/DELTAY^2 + 1.d0/DELTAZ^2);
   if(Courant_number > 1.d0) 
       'time step is too large, simulation will be unstable'
   end
@@ -725,28 +725,23 @@ end
   vx(1,:,:) = ZERO;
   vy(1,:,:) = ZERO;
   vz(1,:,:) = ZERO;
-
 % xmax
   vx(NX,:,:) = ZERO;
   vy(NX,:,:) = ZERO;
   vz(NX,:,:) = ZERO;
-
 % ymin
   vx(:,1,:) = ZERO;
   vy(:,1,:) = ZERO;
   vz(:,1,:) = ZERO;
-
 % ymax
   vx(:,NY,:) = ZERO;
   vy(:,NY,:) = ZERO;
   vz(:,NY,:) = ZERO;
 %$OMP END PARALLEL WORKSHARE
-
 % zmin
   vx(:,:,1) = ZERO;
   vy(:,:,1) = ZERO;
   vz(:,:,1) = ZERO;
-
 % zmax
   vx(:,:,NZ) = ZERO;
   vy(:,:,NZ) = ZERO;
