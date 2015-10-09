@@ -5,11 +5,14 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdio.h>
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <assert.h>
 #include "conio.h"
+
+using namespace std;
 
 static void HandleError(cudaError_t err,
 	const char *file,
@@ -333,8 +336,8 @@ __global__ void kerGather(float *gatvx, float *gatvz, float *gatvy, int *DIMX, i
 	int cccc = (threadIdx.y * blockDim.x) + threadIdx.x;
 	int offset = blkId * aaaa + bbbb + cccc;
 
-	int xlen = (DIMX[0] - 2 * DPML[0]) / (gatx[0]-1);
-	int ylen = (DIMY[0] - 2 * DPML[0]) / (gaty[0]-1);
+	int xlen = (DIMX[0] - 2 * DPML[0]) / (gatx[0]);
+	int ylen = (DIMY[0] - 2 * DPML[0]) / (gaty[0]);
 
 	if (index_z == (DPML[0] + 1)) { //gather permukaan
 		if ((index_y==DPML[0]) || ((index_y - DPML[0]) % ylen == 0)) {
@@ -378,7 +381,7 @@ int main(void) {
 	HANDLE_ERROR(cudaMemcpy(gatvy, tempgat, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(gatvz, tempgat, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyHostToDevice));
 
-	int NSTEP = 100;
+	int NSTEP = 300;
 	int IT_OUTPUT = 100;
 
 	int DIMX, DIMY, DIMZ;
@@ -449,9 +452,9 @@ int main(void) {
 	HANDLE_ERROR(cudaMemcpy(DPML, &NPOINTS_PML, sizeof(int), cudaMemcpyHostToDevice));
 
 	int ISOURCEE, KSOURCEE, JSOURCEE;
-	ISOURCEE = (NIMX) / 2;
-	JSOURCEE = (NIMY) / 2;
-	KSOURCEE = (NIMZ) / 2;
+	ISOURCEE = 50;
+	JSOURCEE = 50;
+	KSOURCEE = 11;
 	int *ISOURCE, *KSOURCE, *JSOURCE;
 	HANDLE_ERROR(cudaMalloc((void**)&ISOURCE, sizeof(int)));
 	HANDLE_ERROR(cudaMemcpy(ISOURCE, &ISOURCEE, sizeof(int), cudaMemcpyHostToDevice));
@@ -1181,44 +1184,29 @@ int main(void) {
 		keraddSource << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ, iit, ISOURCE, JSOURCE, KSOURCE, ANGLE_FORCE, DEGREES_TO_RADIANS, DELTAT, factor, t0, ff0, DPI, vx, vy, rho);
 
 		char nmfile4[100], nmfile5[100], nmfile6[100];
-		sprintf(nmfile4, "rechorvx.txt");
-		sprintf(nmfile5, "rechorvy.txt");
-		sprintf(nmfile6, "rechorvz.txt");
+		sprintf(nmfile4, "rechorvx.bin");
+		sprintf(nmfile5, "rechorvy.bin");
+		sprintf(nmfile6, "rechorvz.bin");
 
 		char entur[] = { '\n' };
 		HANDLE_ERROR(cudaMemcpy(tempgat, gatvx, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyDeviceToHost));
-		FILE * pFile;
-		pFile = fopen(nmfile4, "at+");
-		for (int jj = 0; jj<Ngatx*Ngaty + 1; jj++)
-		{
-			//outvz<<cvz[ij]<<" ";
-			float f2 = tempgat[jj];
-			fwrite(&f2, sizeof(float), 1, pFile);
-			//outvz<<"\n";
-		}
-		fclose(pFile);
+		std::ofstream fout4(nmfile4,ios::app | ios::binary); 
+			for (int kk = 0; kk < (Ngatx+1)*(Ngaty+1); kk++) {
+				fout4.write((char *) &tempgat[kk],sizeof tempgat[kk]);
+			}
 
+		FILE * pFile;
 		HANDLE_ERROR(cudaMemcpy(tempgat, gatvy, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyDeviceToHost));
-		pFile = fopen(nmfile5, "at+");
-		for (int jj = 0; jj<Ngatx*Ngaty + 1; jj++)
-		{
-			//outvz<<cvz[ij]<<" ";
-			float f2 = tempgat[jj];
-			fwrite(&f2, sizeof(float), 1, pFile);
-			//outvz<<"\n";
-		}
-		fclose(pFile);
+		std::ofstream fout5(nmfile5,ios::app | ios::binary); 
+			for (int kk = 0; kk < (Ngatx+1)*(Ngaty+1); kk++) {
+				fout5.write((char *) &tempgat[kk],sizeof tempgat[kk]);
+			}
 
 		HANDLE_ERROR(cudaMemcpy(tempgat, gatvz, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyDeviceToHost));
-		pFile = fopen(nmfile6, "at+");
-		for (int jj = 0; jj<Ngatx*Ngaty + 1; jj++)
-		{
-			//outvz<<cvz[ij]<<" ";
-			float f2 = tempgat[jj];
-			fwrite(&f2, sizeof(float), 1, pFile);
-			//outvz<<"\n";
-		}
-		fclose(pFile);
+		std::ofstream fout6(nmfile6,ios::app | ios::binary); 
+			for (int kk = 0; kk < (Ngatx+1)*(Ngaty+1); kk++) {
+				fout6.write((char *) &tempgat[kk],sizeof tempgat[kk]);
+			}
 
 		if (fmod(it, IT_OUTPUT) == 0){
 			HANDLE_ERROR(cudaMemcpy(tempvz, vz, sizeof(float)*DIMX*DIMY*DIMZ, cudaMemcpyDeviceToHost));
@@ -1229,80 +1217,40 @@ int main(void) {
 			
 			//save to file
 			char nmfile1[20]; char nmfile2[20]; char nmfile3[20];
-			sprintf_s(nmfile1, "vz%05i.txt", it);
-			sprintf_s(nmfile2, "vy%05i.txt", it);
-			sprintf_s(nmfile3, "vx%05i.txt", it);
+			sprintf_s(nmfile1, "vz%05i.bin", it);
+			sprintf_s(nmfile2, "vy%05i.bin", it);
+			sprintf_s(nmfile3, "vx%05i.bin", it);
 			
-			//std::ofstream outvz(nmfile); // output, normal file
-			FILE* file1 = fopen(nmfile1, "wb");
+			std::ofstream fout1(nmfile1,ios::out | ios::binary); 
 			for (int kk = 0; kk < DIMZ; kk++) {
 				for (int jj = 0; jj < DIMY; jj++) {
 					for (int ii = 0; ii < DIMX; ii++) {
 						int ijk = ii + jj*DIMX + kk*DIMX*DIMY;
-						float f1 = tempvz[ijk];
-						fwrite(&f1, sizeof(float), 1, file1);
+						fout1.write((char *) &tempvz[ijk],sizeof tempvz[ijk]);
 					}
 				}
 			}
-			/*for (int jj = 1; jj<DIMZ; jj++) {
-				for (int ii = 1; ii<DIMX*DIMY + 1; ii++) {
-					int ij = (DIMX*DIMY)*jj + ii;
-					//outvz<<cvz[ij]<<" ";
-					float f1 = tempvz[ij];
-					fwrite(&f1, sizeof(float), 1, file1);
-				}
-				//outvz<<"\n";
-			}
-			fclose(file1);
-			*/
-			FILE* file2 = fopen(nmfile2, "wb");
+			
+			std::ofstream fout2(nmfile2,ios::out | ios::binary); 
 			for (int kk = 0; kk < DIMZ; kk++) {
 				for (int jj = 0; jj < DIMY; jj++) {
 					for (int ii = 0; ii < DIMX; ii++) {
 						int ijk = ii + jj*DIMX + kk*DIMX*DIMY;
-						float f2 = tempvy[ijk];
-						fwrite(&f2, sizeof(float), 1, file2);
+						fout2.write((char *) &tempvy[ijk],sizeof tempvy[ijk]);
 					}
 				}
 			}
-			/*for (int jj = 1; jj<DIMZ; jj++)
-			{
-				for (int ii = 1; ii<DIMX*DIMY + 1; ii++)
-				{
-					int ij = (DIMX*DIMY)*jj + ii;
-					//outvz<<cvz[ij]<<" ";
-					float f2 = tempvy[ij];
-					fwrite(&f2, sizeof(float), 1, file2);
-				}
-				//outvz<<"\n";
-			}
-			fclose(file2);
-			*/
-
-			FILE* file3 = fopen(nmfile3, "wb");
+			
+			std::ofstream fout3(nmfile3,ios::out | ios::binary);
 			for (int kk = 0; kk < DIMZ; kk++) {
 				for (int jj = 0; jj < DIMY; jj++) {
 					for (int ii = 0; ii < DIMX; ii++) {
 						int ijk = ii + jj*DIMX + kk*DIMX*DIMY;
-						float f3 = tempvx[ijk];
-						fwrite(&f3, sizeof(float), 1, file3);
+						fout3.write((char *) &tempvx[ijk],sizeof tempvx[ijk]);
 					}
 				}
 			}
-			_fcloseall();
-			/*for (int jj = 1; jj<DIMZ; jj++)
-			{
-				for (int ii = 1; ii<DIMX*DIMY + 1; ii++)
-				{
-					int ij = (DIMX*DIMY)*jj + ii;
-					//outvz<<cvz[ij]<<" ";
-					float f3 = tempvx[ij];
-					fwrite(&f3, sizeof(float), 1, file3);
-				}
-				//outvz<<"\n";
-			}
-			fclose(file3);
-			*/
+			
 			//save to file END
 		}
 	}
