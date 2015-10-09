@@ -6,6 +6,10 @@
 #include <math.h>
 #include <stdio.h>
 #include <fstream>
+#include <sstream>
+#include <string>
+#include <assert.h>
+#include "conio.h"
 
 static void HandleError(cudaError_t err,
 	const char *file,
@@ -36,9 +40,9 @@ __global__ void kersigmaxyz(float *cp, float *cs, float *rho, float *DELTAT, int
 	if ((index_z >= 2) && (index_z <= DDIMZ[0])) {
 		if ((index_y >= 2) && (index_y <= DDIMY[0])) {
 			if ((index_x >= 1) && (index_z <= DDIMX[0] - 1)) {
-				float vp = (3 * cp[offset] + cp[right] + cp[ybottom] + cp[zbottom])/6;
-				float vs = (3 * cs[offset] + cs[right] + cs[ybottom] + cs[zbottom])/6;
-				float rhos = (3 * rho[offset] + rho[right] + rho[ybottom] + rho[zbottom])/6;
+				float vp = cp[offset];
+				float vs = cs[offset];
+				float rhos = rho[offset];
 
 				float lambda = rhos*(vp*vp - 2 * vs*vs);
 				float lambdaplus2mu = rhos*vp*vp;
@@ -84,8 +88,8 @@ __global__ void kersigmaxy(float *cp, float *cs, float *rho, int *DDIMX, int *DD
 	if ((index_z >= 1) && (index_z <= DDIMZ[0])) {
 		if ((index_y >= 1) && (index_y <= DDIMY[0] - 1)) {
 			if ((index_x >= 2) && (index_z <= DDIMX[0])) {
-				float vs = (2 * cs[offset] + cs[left] + cs[ytop]) / 4;
-				float rhos = (2 * rho[offset] + rho[left] + rho[ytop]) / 4;
+				float vs = (cs[left] + cs[ytop]) / 2;
+				float rhos = (rho[left] + rho[ytop]) / 2;
 
 				float mu = rhos*vs*vs;
 
@@ -126,8 +130,8 @@ __global__ void kersigmaxzyz(float *cp, float *cs, float *rho, int *DDIMX, int *
 		//sigmaxz
 		if ((index_y >= 1) && (index_y <= DDIMY[0])) {
 			if ((index_x >= 2) && (index_z <= DDIMX[0])) {
-				float vs = (2 * cs[offset] + cs[left] + cs[ztop]) / 4;
-				float rhos = (2 * rho[offset] + rho[left] + rho[ztop]) / 4;
+				float vs = (cs[left] + cs[ztop]) / 2;
+				float rhos = (rho[left] + rho[ztop]) / 2;
 
 				float mu = rhos*vs*vs;
 
@@ -149,8 +153,8 @@ __global__ void kersigmaxzyz(float *cp, float *cs, float *rho, int *DDIMX, int *
 		//sigmayz
 		if ((index_y >= 1) && (index_y <= DDIMY[0] - 1)) {
 			if ((index_x >= 1) && (index_z <= DDIMX[0])) {
-				float vs = (2 * cs[offset] + cs[ytop] + cs[ztop]) / 4;
-				float rhos = (2 * rho[offset] + rho[ytop] + rho[ztop]) / 4;
+				float vs = (cs[ytop] + cs[ztop]) / 2;
+				float rhos = (rho[ytop] + rho[ztop]) / 2;
 
 				float mu = rhos*vs*vs;
 
@@ -193,7 +197,7 @@ __global__ void kervxvy(float *rho, int *DDIMX, int *DDIMY, int *DDIMZ, float *D
 		//vx
 		if ((index_y >= 2) && (index_y <= DDIMY[0])) {
 			if ((index_x >= 2) && (index_z <= DDIMX[0])) {
-				float rhos = (3 * rho[offset] + rho[ybottom] + rho[zbottom] + rho[left]) / 6;
+				float rhos = (rho[offset] + rho[left]) / 2;
 
 				float DELTAT_over_rho = DELTAT[0] / rhos;
 
@@ -216,7 +220,7 @@ __global__ void kervxvy(float *rho, int *DDIMX, int *DDIMY, int *DDIMZ, float *D
 		//vy
 		if ((index_y >= 1) && (index_y <= DDIMY[0] - 1)) {
 			if ((index_x >= 1) && (index_z <= DDIMX[0] - 1)) {
-				float rhos = (3 * rho[offset] + rho[ytop] + rho[zbottom] + rho[right]) / 6;
+				float rhos = (rho[offset] + rho[ytop]) / 2;
 
 				float DELTAT_over_rho = DELTAT[0] / rhos;
 
@@ -257,7 +261,7 @@ __global__ void kervz(float *rho, int *DDIMX, int *DDIMY, int *DDIMZ, float *DEL
 	if ((index_z >= 1) && (index_z <= DDIMZ[0] - 1)) {
 		if ((index_y >= 2) && (index_y <= DDIMY[0])) {
 			if ((index_x >= 1) && (index_z <= DDIMX[0] - 1)) {
-				float rhos = (3 * rho[offset] + rho[ybottom] + rho[ztop] + rho[right]) / 6;
+				float rhos = (rho[offset] + rho[ztop]) / 2;
 
 				float DELTAT_over_rho = DELTAT[0] / rhos;
 
@@ -280,7 +284,7 @@ __global__ void kervz(float *rho, int *DDIMX, int *DDIMY, int *DDIMZ, float *DEL
 
 }
 
-__global__ void keraddSource(int *iit, int *ISOURCE, int *JSOURCE, int *KSOURCE, float *ANGLE_FORCE, float *DEGREES_TO_RADIANS, float *DELTAT, float *factor, float *t0, float *ff0, float *DPI, float *vx, float *vy, float *rho) {
+__global__ void keraddSource(int *DDIMX, int *DDIMY, int *DDIMZ, int *iit, int *ISOURCE, int *JSOURCE, int *KSOURCE, float *ANGLE_FORCE, float *DEGREES_TO_RADIANS, float *DELTAT, float *factor, float *t0, float *ff0, float *DPI, float *vx, float *vy, float *rho) {
 	int index_x = blockIdx.x * blockDim.x + threadIdx.x;
 	int index_y = blockIdx.y * blockDim.y + threadIdx.y;
 	int index_z = blockIdx.z * blockDim.z + threadIdx.z;
@@ -290,6 +294,8 @@ __global__ void keraddSource(int *iit, int *ISOURCE, int *JSOURCE, int *KSOURCE,
 	int bbbb = threadIdx.z * (blockDim.x * blockDim.y);
 	int cccc = (threadIdx.y * blockDim.x) + threadIdx.x;
 	int offset = blkId * aaaa + bbbb + cccc;
+	int left = offset - 1;
+	int ytop = offset + DDIMX[0];
 
 	float a = DPI[0] * DPI[0] * ff0[0] * ff0[0];
 	float t = float(iit[0] - 1)*DELTAT[0];
@@ -309,8 +315,8 @@ __global__ void keraddSource(int *iit, int *ISOURCE, int *JSOURCE, int *KSOURCE,
 	if (index_z == KSOURCE[0]) {
 		if (index_y == JSOURCE[0]) {
 			if (index_x == ISOURCE[0]) {
-				vx[offset] = vx[offset] + force_x*DELTAT[0] / rho[offset];
-				vy[offset] = vy[offset] + force_y*DELTAT[0] / rho[offset];
+				vx[offset] = vx[offset] + force_x*DELTAT[0] / ((rho[offset]+rho[left])/2);
+				vy[offset] = vy[offset] + force_y*DELTAT[0] / ((rho[offset]+rho[ytop])/2);
 			}
 		}
 	}
@@ -344,15 +350,16 @@ __global__ void kerGather(float *gatvx, float *gatvz, float *gatvy, int *DIMX, i
 		}
 	}
 }
-int main() {
+
+int main(void) {
 	int NIMX, NIMY, NIMZ;
-	NIMX = 199;
-	NIMY = 199;
-	NIMZ = 199;
+	NIMX = 200;
+	NIMY = 200;
+	NIMZ = 100;
 
 	// jml receiver = ((gatx+1)*(gaty+1))
-	int Ngatx = 5;
-	int Ngaty = 5;
+	int Ngatx = 99;
+	int Ngaty = 9;
 	int *gatx, *gaty;
 	HANDLE_ERROR(cudaMalloc((void**)&gatx, sizeof(int)));
 	HANDLE_ERROR(cudaMemcpy(gatx, &Ngatx, sizeof(int), cudaMemcpyHostToDevice));
@@ -371,7 +378,7 @@ int main() {
 	HANDLE_ERROR(cudaMemcpy(gatvy, tempgat, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(gatvz, tempgat, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyHostToDevice));
 
-	int NSTEP = 2500;
+	int NSTEP = 500;
 	int IT_OUTPUT = 100;
 
 	int DIMX, DIMY, DIMZ;
@@ -402,6 +409,11 @@ int main() {
 				tempcp[ijk] = 3300;
 				tempcs[ijk] = 3300/1.732;
 				temprho[ijk] = 3000;
+				if (k >= 50) {
+					tempcp[ijk] = 2000;
+					tempcs[ijk] = 2000 / 1.732;
+					temprho[ijk] = 1700;
+				}
 			}
 		}
 	}
@@ -888,7 +900,7 @@ int main() {
 	thickness_PML_z = NPOINTS_PML * DELTAZ;
 	Rcoef = 0.001;
 
-	float vpml = 2700;
+	float vpml = 3000;
 	d0_x = -(NPOWER + 1) * vpml * logf(Rcoef) / (2.0 * thickness_PML_x);
 	d0_y = -(NPOWER + 1) * vpml * logf(Rcoef) / (2.0 * thickness_PML_y);
 	d0_z = -(NPOWER + 1) * vpml * logf(Rcoef) / (2.0 * thickness_PML_z);
@@ -1146,60 +1158,71 @@ int main() {
 	HANDLE_ERROR(cudaMemcpy(DDIMZ, &NIMZ, sizeof(int), cudaMemcpyHostToDevice));
 
 	dim3 threads;
-	threads.x = 100;
-	threads.y = 100;
-	threads.z = 100;
+	threads.x = 10;
+	threads.y = 10;
+	threads.z = 10;
 
 	dim3 blocks;
-	blocks.x = DIMX / threads.x;
-	blocks.y = DIMY / threads.y;
-	blocks.z = DIMZ / threads.z;
+	blocks.x = NIMX / threads.x;
+	blocks.y = NIMY / threads.y;
+	blocks.z = NIMZ / threads.z;
 
 	int *iit;
 	HANDLE_ERROR(cudaMalloc((void**)&iit, sizeof(int)));
 
 	for (int it = 1; it <= NSTEP; it++) {
-		kersigmaxyz << <blocks, threads >> >(cp, cs, rho, DELTAT, DDIMX, DDIMY, DDIMZ, memory_dvx_dx, memory_dvy_dy, memory_dvz_dz, a_x_half, a_y, a_z, b_x_half, b_y, b_z, K_x_half, K_y, K_z, sigmaxx, sigmayy, sigmazz, ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ, vx, vy, vz);
+		kersigmaxyz<< <blocks, threads >> >(cp, cs, rho, DELTAT, DDIMX, DDIMY, DDIMZ, memory_dvx_dx, memory_dvy_dy, memory_dvz_dz, a_x_half, a_y, a_z, b_x_half, b_y, b_z, K_x_half, K_y, K_z, sigmaxx, sigmayy, sigmazz, ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ, vx, vy, vz);
 
-		kersigmaxy << <blocks, threads >> >(cp, cs, rho, DDIMX, DDIMY, DDIMZ, DELTAT, memory_dvy_dx, memory_dvx_dy, a_x, a_y_half, b_x, b_y_half, K_x, K_y_half, ONE_OVER_DELTAX, ONE_OVER_DELTAY, vx, vy, sigmaxy);
+		kersigmaxy<< <blocks, threads >> >(cp, cs, rho, DDIMX, DDIMY, DDIMZ, DELTAT, memory_dvy_dx, memory_dvx_dy, a_x, a_y_half, b_x, b_y_half, K_x, K_y_half, ONE_OVER_DELTAX, ONE_OVER_DELTAY, vx, vy, sigmaxy);
 
-		kersigmaxzyz << <blocks, threads >> >(cp, cs, rho, DDIMX, DDIMY, DDIMZ, DELTAT, memory_dvz_dx, memory_dvx_dz, memory_dvz_dy, memory_dvy_dz, a_x, a_z, a_y_half, a_z_half, b_x, b_y_half, b_z_half, K_x, K_y_half, K_z_half, ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ, vx, vy, vz, sigmaxz, sigmayz);
+		kersigmaxzyz<< <blocks, threads >> >(cp, cs, rho, DDIMX, DDIMY, DDIMZ, DELTAT, memory_dvz_dx, memory_dvx_dz, memory_dvz_dy, memory_dvy_dz, a_x, a_z, a_y_half, a_z_half, b_x, b_y_half, b_z_half, K_x, K_y_half, K_z_half, ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ, vx, vy, vz, sigmaxz, sigmayz);
 
-		kervxvy << <blocks, threads >> >(rho, DDIMX, DDIMY, DDIMZ, DELTAT, sigmaxx, sigmaxy, sigmaxz, sigmayy, sigmayz, memory_dsigmaxx_dx, memory_dsigmaxy_dy, memory_dsigmaxz_dz, memory_dsigmaxy_dx, memory_dsigmayy_dy, memory_dsigmayz_dz, a_x, a_y, a_z, a_x_half, a_y_half, b_x, b_y, b_z, b_x_half, b_y_half, K_x, K_y, K_z, K_x_half, K_y_half, ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ, vx, vy);
+		kervxvy<< <blocks, threads >> >(rho, DDIMX, DDIMY, DDIMZ, DELTAT, sigmaxx, sigmaxy, sigmaxz, sigmayy, sigmayz, memory_dsigmaxx_dx, memory_dsigmaxy_dy, memory_dsigmaxz_dz, memory_dsigmaxy_dx, memory_dsigmayy_dy, memory_dsigmayz_dz, a_x, a_y, a_z, a_x_half, a_y_half, b_x, b_y, b_z, b_x_half, b_y_half, K_x, K_y, K_z, K_x_half, K_y_half, ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ, vx, vy);
 
-		kervz << <blocks, threads >> >(rho, DDIMX, DDIMY, DDIMZ, DELTAT, sigmaxz, sigmayz, sigmazz, memory_dsigmaxz_dx, memory_dsigmayz_dy, memory_dsigmazz_dz, b_x_half, b_y, b_z_half, a_x_half, a_y, a_z_half, K_x_half, K_y, K_z_half, ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ, vz);
+		kervz<< <blocks, threads >> >(rho, DDIMX, DDIMY, DDIMZ, DELTAT, sigmaxz, sigmayz, sigmazz, memory_dsigmaxz_dx, memory_dsigmayz_dy, memory_dsigmazz_dz, b_x_half, b_y, b_z_half, a_x_half, a_y, a_z_half, K_x_half, K_y, K_z_half, ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ, vz);
 
-		kerGather << <blocks, threads >> >(gatvx, gatvz, gatvy, DDIMX, DDIMY, DDIMZ, gatx, gaty, DPML, vx, vy, vz);
+		kerGather<< <blocks, threads >> >(gatvx, gatvz, gatvy, DDIMX, DDIMY, DDIMZ, gatx, gaty, DPML, vx, vy, vz);
 
 		HANDLE_ERROR(cudaMemcpy(iit, &it, sizeof(int), cudaMemcpyHostToDevice));
-		keraddSource << <blocks, threads >> >(iit, ISOURCE, JSOURCE, KSOURCE, ANGLE_FORCE, DEGREES_TO_RADIANS, DELTAT, factor, t0, ff0, DPI, vx, vy, rho);
+		keraddSource << <blocks, threads >> >(DDIMX, DDIMY, DDIMZ, iit, ISOURCE, JSOURCE, KSOURCE, ANGLE_FORCE, DEGREES_TO_RADIANS, DELTAT, factor, t0, ff0, DPI, vx, vy, rho);
 
-		char nmfile1[100], nmfile2[100], nmfile3[100];
-		sprintf(nmfile1, "rechorvx.hor");
-		sprintf(nmfile2, "rechorvy.hor");
-		sprintf(nmfile3, "rechorvz.hor");
+		char nmfile4[100], nmfile5[100], nmfile6[100];
+		sprintf(nmfile4, "rechorvx.txt");
+		sprintf(nmfile5, "rechorvy.txt");
+		sprintf(nmfile6, "rechorvz.txt");
 
 		char entur[] = { '\n' };
 		HANDLE_ERROR(cudaMemcpy(tempgat, gatvx, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyDeviceToHost));
 		FILE * pFile;
-		pFile = fopen(nmfile1, "a+");
-		for (int ii = 0; ii < (Ngatx + 1)*(Ngaty + 1); ii++) {
-			fwrite(&tempgat[ii], sizeof(float), sizeof(float), pFile);
-			fwrite(entur, sizeof(char), sizeof(entur), pFile);
+		pFile = fopen(nmfile4, "at+");
+		for (int jj = 0; jj<Ngatx*Ngaty + 1; jj++)
+		{			
+			//outvz<<cvz[ij]<<" ";
+			float f2 = tempgat[jj];
+			fwrite(&f2, sizeof(float), 1, pFile);
+			//outvz<<"\n";
 		}
 		fclose(pFile);
+
 		HANDLE_ERROR(cudaMemcpy(tempgat, gatvy, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyDeviceToHost));
-		pFile = fopen(nmfile2, "a+");
-		for (int ii = 0; ii < (Ngatx + 1)*(Ngaty + 1); ii++) {
-			fwrite(&tempgat[ii], sizeof(float), sizeof(float), pFile);
-			fwrite(entur, sizeof(char), sizeof(entur), pFile);
+		pFile = fopen(nmfile5, "at+");
+		for (int jj = 0; jj<Ngatx*Ngaty + 1; jj++)
+		{
+			//outvz<<cvz[ij]<<" ";
+			float f2 = tempgat[jj];
+			fwrite(&f2, sizeof(float), 1, pFile);
+			//outvz<<"\n";
 		}
 		fclose(pFile);
+
 		HANDLE_ERROR(cudaMemcpy(tempgat, gatvz, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyDeviceToHost));
-		pFile = fopen(nmfile3, "a+");
-		for (int ii = 0; ii < (Ngatx + 1)*(Ngaty + 1); ii++) {
-			fwrite(&tempgat[ii], sizeof(float), sizeof(float), pFile);
-			fwrite(entur, sizeof(char), sizeof(entur), pFile);
+		pFile = fopen(nmfile6, "at+");
+		for (int jj = 0; jj<Ngatx*Ngaty + 1; jj++)
+		{
+			//outvz<<cvz[ij]<<" ";
+			float f2 = tempgat[jj];
+			fwrite(&f2, sizeof(float), 1, pFile);
+			//outvz<<"\n";
 		}
 		fclose(pFile);
 
@@ -1212,48 +1235,52 @@ int main() {
 			
 			//save to file
 			char nmfile1[20]; char nmfile2[20]; char nmfile3[20];
-			sprintf_s(nmfile1, "vz%05i.vzo", it);
-			sprintf_s(nmfile2, "vy%05i.vyo", it);
-			sprintf_s(nmfile3, "vx%05i.vxo", it);
-			errno_t err;
-			FILE *file1, *file2, *file3;
-			err = fopen_s(&file1, nmfile1, "w+");
-			if (err == 0) {
-				printf("Capturing vz %05i \n", it);
-				for (int k = 0; k < DIMY*DIMZ; k++) {
-					for (int j = 0; j < DIMX; j++) {
-						int jk = j + k*NIMY;
-						float f1 = tempvz[jk];
-						fwrite(&f1, sizeof(float), 1, file1);
-					}
+			sprintf_s(nmfile1, "vz%05i.txt", it);
+			sprintf_s(nmfile2, "vy%05i.txt", it);
+			sprintf_s(nmfile3, "vx%05i.txt", it);
+			
+			//std::ofstream outvz(nmfile); // output, normal file
+			FILE* file1 = fopen(nmfile1, "wb");
+			for (int jj = 1; jj<DIMZ; jj++)
+			{
+				for (int ii = 1; ii<DIMX*DIMY + 1; ii++)
+				{
+					int ij = (DIMX*DIMY)*jj + ii;
+					//outvz<<cvz[ij]<<" ";
+					float f1 = tempvz[ij];
+					fwrite(&f1, sizeof(float), 1, file1);
 				}
-				fclose(file1);
+				//outvz<<"\n";
 			}
-			err = fopen_s(&file2, nmfile2, "w+");
-			if (err == 0) {
-				printf("Capturing vy %05i \n", it);
-				for (int k = 0; k < DIMY*DIMZ; k++) {
-					for (int i = 0; i < DIMX; i++) {
-						int ik = i + k*NIMX;
-						float f2 = tempvy[ik];
-						fwrite(&f2, sizeof(float), 1, file2);
-					}
+			fclose(file1);
+
+			FILE* file2 = fopen(nmfile2, "wb");
+			for (int jj = 1; jj<DIMZ; jj++)
+			{
+				for (int ii = 1; ii<DIMX*DIMY + 1; ii++)
+				{
+					int ij = (DIMX*DIMY)*jj + ii;
+					//outvz<<cvz[ij]<<" ";
+					float f2 = tempvy[ij];
+					fwrite(&f2, sizeof(float), 1, file2);
 				}
-				fclose(file2);
+				//outvz<<"\n";
 			}
-			err = fopen_s(&file3, nmfile3, "w+");
-			if (err == 0) {
-				printf("Capturing vx %05i \n", it);
-				for (int j = 0; j < DIMY*DIMZ; j++) {
-					for (int i = 0; i < DIMX; i++) {
-						int ij = i + j*NIMX;
-						float f3 = tempvx[ij];
-						fwrite(&f3, sizeof(float), 1, file3);
-					}
+			fclose(file2);
+
+			FILE* file3 = fopen(nmfile3, "wb");
+			for (int jj = 1; jj<DIMZ; jj++)
+			{
+				for (int ii = 1; ii<DIMX*DIMY + 1; ii++)
+				{
+					int ij = (DIMX*DIMY)*jj + ii;
+					//outvz<<cvz[ij]<<" ";
+					float f3 = tempvx[ij];
+					fwrite(&f3, sizeof(float), 1, file3);
 				}
-				fclose(file3);
+				//outvz<<"\n";
 			}
-			_fcloseall();
+			fclose(file3);
 			//save to file END
 		}
 	}
