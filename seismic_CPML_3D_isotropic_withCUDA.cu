@@ -378,7 +378,7 @@ int main(void) {
 	HANDLE_ERROR(cudaMemcpy(gatvy, tempgat, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(gatvz, tempgat, sizeof(float)*(Ngatx + 1)*(Ngaty + 1), cudaMemcpyHostToDevice));
 
-	int NSTEP = 500;
+	int NSTEP = 100;
 	int IT_OUTPUT = 100;
 
 	int DIMX, DIMY, DIMZ;
@@ -985,8 +985,6 @@ int main(void) {
 	HANDLE_ERROR(cudaMemcpy(K_x, tempK_x, sizeof(float)*DIMX, cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(K_x_half, tempK_x_half, sizeof(float)*DIMX, cudaMemcpyHostToDevice));
 
-	free(tempd_x); free(tempd_x_half); free(tempa_x); free(tempa_x_half); free(tempalpha_x); free(tempalpha_x_half); free(tempb_x); free(tempb_x_half); free(tempK_x); free(tempK_x_half);
-
 	//-----------------PML Y
 	float *tempd_y = (float*)malloc(sizeof(float)*DIMY);
 	float *tempd_y_half = (float*)malloc(sizeof(float)*DIMY);
@@ -1066,8 +1064,6 @@ int main(void) {
 	HANDLE_ERROR(cudaMemcpy(K_y, tempK_y, sizeof(float)*DIMY, cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(K_y_half, tempK_y_half, sizeof(float)*DIMY, cudaMemcpyHostToDevice));
 
-	free(tempd_y); free(tempd_y_half); free(tempa_y); free(tempa_y_half); free(tempalpha_y); free(tempalpha_y_half); free(tempb_y); free(tempb_y_half); free(tempK_y); free(tempK_y_half);
-	
 	//-----------------PML Z
 	float *tempd_z = (float*)malloc(sizeof(float)*DIMZ);
 	float *tempd_z_half = (float*)malloc(sizeof(float)*DIMZ);
@@ -1147,8 +1143,6 @@ int main(void) {
 	HANDLE_ERROR(cudaMemcpy(K_z, tempK_z, sizeof(float)*DIMZ, cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(K_z_half, tempK_z_half, sizeof(float)*DIMZ, cudaMemcpyHostToDevice));
 
-	free(tempd_z); free(tempd_z_half); free(tempa_z); free(tempa_z_half); free(tempalpha_z); free(tempalpha_z_half); free(tempb_z); free(tempb_z_half); free(tempK_z); free(tempK_z_half);
-
 	int *DDIMX, *DDIMY, *DDIMZ;
 	HANDLE_ERROR(cudaMalloc((void**)&DDIMX, sizeof(int)));
 	HANDLE_ERROR(cudaMalloc((void**)&DDIMY, sizeof(int)));
@@ -1196,7 +1190,7 @@ int main(void) {
 		FILE * pFile;
 		pFile = fopen(nmfile4, "at+");
 		for (int jj = 0; jj<Ngatx*Ngaty + 1; jj++)
-		{			
+		{
 			//outvz<<cvz[ij]<<" ";
 			float f2 = tempgat[jj];
 			fwrite(&f2, sizeof(float), 1, pFile);
@@ -1241,10 +1235,17 @@ int main(void) {
 			
 			//std::ofstream outvz(nmfile); // output, normal file
 			FILE* file1 = fopen(nmfile1, "wb");
-			for (int jj = 1; jj<DIMZ; jj++)
-			{
-				for (int ii = 1; ii<DIMX*DIMY + 1; ii++)
-				{
+			for (int kk = 0; kk < DIMZ; kk++) {
+				for (int jj = 0; jj < DIMY; jj++) {
+					for (int ii = 0; ii < DIMX; ii++) {
+						int ijk = ii + jj*DIMX + kk*DIMX*DIMY;
+						float f1 = tempvz[ijk];
+						fwrite(&f1, sizeof(float), 1, file1);
+					}
+				}
+			}
+			/*for (int jj = 1; jj<DIMZ; jj++) {
+				for (int ii = 1; ii<DIMX*DIMY + 1; ii++) {
 					int ij = (DIMX*DIMY)*jj + ii;
 					//outvz<<cvz[ij]<<" ";
 					float f1 = tempvz[ij];
@@ -1253,9 +1254,18 @@ int main(void) {
 				//outvz<<"\n";
 			}
 			fclose(file1);
-
+			*/
 			FILE* file2 = fopen(nmfile2, "wb");
-			for (int jj = 1; jj<DIMZ; jj++)
+			for (int kk = 0; kk < DIMZ; kk++) {
+				for (int jj = 0; jj < DIMY; jj++) {
+					for (int ii = 0; ii < DIMX; ii++) {
+						int ijk = ii + jj*DIMX + kk*DIMX*DIMY;
+						float f2 = tempvy[ijk];
+						fwrite(&f2, sizeof(float), 1, file2);
+					}
+				}
+			}
+			/*for (int jj = 1; jj<DIMZ; jj++)
 			{
 				for (int ii = 1; ii<DIMX*DIMY + 1; ii++)
 				{
@@ -1267,9 +1277,20 @@ int main(void) {
 				//outvz<<"\n";
 			}
 			fclose(file2);
+			*/
 
 			FILE* file3 = fopen(nmfile3, "wb");
-			for (int jj = 1; jj<DIMZ; jj++)
+			for (int kk = 0; kk < DIMZ; kk++) {
+				for (int jj = 0; jj < DIMY; jj++) {
+					for (int ii = 0; ii < DIMX; ii++) {
+						int ijk = ii + jj*DIMX + kk*DIMX*DIMY;
+						float f3 = tempvx[ijk];
+						fwrite(&f3, sizeof(float), 1, file3);
+					}
+				}
+			}
+			_fcloseall();
+			/*for (int jj = 1; jj<DIMZ; jj++)
 			{
 				for (int ii = 1; ii<DIMX*DIMY + 1; ii++)
 				{
@@ -1281,6 +1302,7 @@ int main(void) {
 				//outvz<<"\n";
 			}
 			fclose(file3);
+			*/
 			//save to file END
 		}
 	}
