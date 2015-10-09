@@ -1166,7 +1166,11 @@ int main(void) {
 
 	int *iit;
 	HANDLE_ERROR(cudaMalloc((void**)&iit, sizeof(int)));
-
+	float time;
+	cudaEvent_t sutaru, sutopu;
+	HANDLE_ERROR(cudaEventCreate(&sutaru));
+	HANDLE_ERROR(cudaEventCreate(&sutopu));
+	HANDLE_ERROR(cudaEventRecord(sutaru,0));
 	for (int it = 1; it <= NSTEP; it++) {
 		kersigmaxyz << <blocks, threads >> >(cp, cs, rho, DELTAT, DDIMX, DDIMY, DDIMZ, memory_dvx_dx, memory_dvy_dy, memory_dvz_dz, a_x_half, a_y, a_z, b_x_half, b_y, b_z, K_x_half, K_y, K_z, sigmaxx, sigmayy, sigmazz, ONE_OVER_DELTAX, ONE_OVER_DELTAY, ONE_OVER_DELTAZ, vx, vy, vz);
 
@@ -1216,10 +1220,11 @@ int main(void) {
 			//3d to 2d
 
 			//save to file
-			char nmfile1[20]; char nmfile2[20]; char nmfile3[20];
+			char nmfile1[20]; char nmfile2[20]; char nmfile3[20]; char nmfile7[20];
 			sprintf_s(nmfile1, "vz%05i.bin", it);
 			sprintf_s(nmfile2, "vy%05i.bin", it);
 			sprintf_s(nmfile3, "vx%05i.bin", it);
+			sprintf_s(nmfile7, "time%05i.bin", it);
 
 			std::ofstream fout1(nmfile1, ios::out | ios::binary);
 			for (int kk = 0; kk < DIMZ; kk++) {
@@ -1251,6 +1256,11 @@ int main(void) {
 				}
 			}
 
+			std::ofstream fout7(nmfile7, ios::out | ios::binary);
+			HANDLE_ERROR(cudaEventRecord(sutopu,0));
+			HANDLE_ERROR(cudaEventSynchronize(sutopu));
+			HANDLE_ERROR(cudaEventElapsedTime(&time, sutaru, sutopu));
+			fout7.write((char *)&time, sizeof time);
 			//save to file END
 		}
 	}
