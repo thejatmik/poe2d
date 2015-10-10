@@ -1,4 +1,5 @@
 #include "conio.h"
+#include <time.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -607,7 +608,9 @@ int _tmain(int argc, _TCHAR* argv[])
 		sseismo0[ij] = 0.0;
 	}
 
+	clock_t t1, t2, time; 
 	int i_steps = 0;
+	t1 = clock();
 	for (int it = 0; it < NSTEP / samp; it++) {
 		for (int ix = 0; ix < samp; ix++) {
 			i_steps++;
@@ -914,6 +917,13 @@ int _tmain(int argc, _TCHAR* argv[])
 			}
 			outseya1d << "\n";
 		}
+		t2 = clock_t();
+		time = t2 - t1;
+		char nmfilet[20];
+		sprintf_s(nmfilet, "time%05i.ttt", i_steps);
+		ofstream outseya1t(nmfilet);
+		outseya1t << time << " " <<CLOCKS_PER_SEC;
+		outseya1t << endl << ((float)time) / CLOCKS_PER_SEC;
 	}
 	return 0;
 }
