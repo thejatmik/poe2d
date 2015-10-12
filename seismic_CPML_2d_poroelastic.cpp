@@ -611,9 +611,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	clock_t t1, t2, time; 
 	int i_steps = 0;
 	t1 = clock();
-	for (int it = 0; it < NSTEP / samp; it++) {
-		for (int ix = 0; ix < samp; ix++) {
-			i_steps++;
+	for (int it = 0; it <= NSTEP / samp; it++) {
+		for (int ix = 0; ix <= samp; ix++) {
+			i_steps=ix+it*samp;
 			//stress1
 			for (int y = 2; y < NZ - 1; y++) {
 				for (int x = 1; x < NX; x++) {
